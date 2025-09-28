@@ -1,0 +1,53 @@
+{
+  "config": {
+    "team": { "coordinatorId": "uid_leticia", "sellers": ["uid_nayara", "uid_nathalia"] },
+    "commissions": {
+      "seller_own": 0.01,
+      "seller_over_coord": 0.005,
+      "coord_own": 0.01,
+      "coord_over_seller": 0.01
+    },
+    "services": {
+      "base_min": 0.05,
+      "impermeabilizacao": [
+        { "minAdesao": 0.5, "rate": 0.07 },
+        { "minAdesao": 0.7, "rate": 0.1 }
+      ],
+      "capa": [
+        { "minAdesao": 0.2, "rate": 0.08 },
+        { "minAdesao": 0.3, "rate": 0.1 }
+      ]
+    },
+    "ml_bonus": {
+      "tiers": [
+        { "min": 30, "max": 39, "value": 20 },
+        { "min": 40, "max": 49, "value": 40 },
+        { "min": 50, "max": 999, "value": 60 }
+      ]
+    },
+    "faturamento_bonus": [
+      { "min": 150000, "rate": 0.0025 },
+      { "min": 200000, "rate": 0.005 },
+      { "min": 250000, "rate": 0.01 },
+      { "min": 300000, "rate": 0.0125 }
+    ],
+    "instagram": {
+      "postsPerDay": 1,
+      "storiesPerDay": 10,
+      "weekdays": { "start": "09:30", "end": "17:00" },
+      "saturday": { "start": "09:00", "end": "13:30" }
+    },
+    "timezone": "America/Sao_Paulo",
+    "pontualidade_default": 150
+  },
+  "users": {
+    "uid_admin": { "name": "Admin", "role": "admin" },
+    "uid_leticia": { "name": "Leticia", "role": "coordenadora" },
+    "uid_nayara": { "name": "Nayara", "role": "vendedora" },
+    "uid_nathalia": { "name": "Nathalia", "role": "vendedora" }
+  },
+  "sales": {},
+  "ig_tracking": {},
+  "ml_links": {},
+  "closures": {}
+}
