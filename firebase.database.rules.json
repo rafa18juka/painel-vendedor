@@ -1,0 +1,46 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "config": {
+      ".read": true,
+      ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'"
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
+        ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'"
+      }
+    },
+    "sales": {
+      "$month": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "ig_tracking": {
+      "$day": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "ml_links": {
+      "$week": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "closures": {
+      "$month": {
+        ".read": true,
+        ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'"
+      }
+    }
+  }
+}
