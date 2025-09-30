@@ -14,9 +14,10 @@
     },
     "sales": {
       "$month": {
+        ".read": "auth != null",
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
-          ".write": "auth != null && auth.uid === $uid"
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin' || (root.child('users/' + auth.uid + '/role').val() === 'coordenadora') || (root.child('users/' + auth.uid + '/role').val() === 'vendedora' && root.child('config/team/coordinatorId').val() === $uid))",
+          ".write": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')"
         }
       }
     },
@@ -24,7 +25,7 @@
       "$day": {
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
-          ".write": "auth != null && auth.uid === $uid"
+          ".write": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')"
         }
       }
     },
@@ -32,7 +33,7 @@
       "$week": {
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",
-          ".write": "auth != null && auth.uid === $uid"
+          ".write": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')"
         }
       }
     },
