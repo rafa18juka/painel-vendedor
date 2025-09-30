@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,8 +11,8 @@ import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 
 const schema = z.object({
-  email: z.string().email('Informe um e-mail vÃ¡lido'),
-  password: z.string().min(6, 'Senha com mÃ­nimo 6 caracteres')
+  email: z.string().email('Informe um e-mail válido'),
+  password: z.string().min(6, 'Senha com mínimo 6 caracteres')
 });
 
 type FormData = z.infer<typeof schema>;
@@ -22,11 +22,13 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
+  useEffect(() => {
+    if (status === 'authenticated' && user) {
+      navigate(user.role === 'admin' ? '/admin' : '/painel', { replace: true });
+    }
+  }, [status, user, navigate]);
 
-  if (status === 'authenticated' && user) {
-    navigate(user.role === 'admin' ? '/admin' : '/painel', { replace: true });
-  }
+  const form = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -36,7 +38,7 @@ export function LoginPage() {
       navigate('/painel');
     } catch (error) {
       console.error(error);
-      toast.error('NÃ£o foi possÃ­vel entrar. Verifique as credenciais.');
+      toast.error('Não foi possível entrar. Verifique as credenciais.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export function LoginPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Senha</label>
-                <Input type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" {...form.register('password')} />
+                <Input type="password" placeholder="••••••" {...form.register('password')} />
                 {form.formState.errors.password && <p className="mt-1 text-xs text-red-500">{form.formState.errors.password.message}</p>}
               </div>
               <Button type="submit" disabled={loading} className="mt-2">
@@ -67,7 +69,7 @@ export function LoginPage() {
               </Button>
             </form>
             <p className="mt-6 text-center text-xs text-slate-500">
-              Time Ralph Couch Â· Fuso fixo America/Sao_Paulo Â· SeguranÃ§a em primeiro lugar
+              Time Ralph Couch · Fuso fixo America/Sao_Paulo · Segurança em primeiro lugar
             </p>
           </CardContent>
         </Card>

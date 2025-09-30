@@ -33,12 +33,53 @@ export function getServiceRate(cfg: Config, kind: 'capa' | 'impermeabilizacao', 
 }
 
 export function calcMlWeeklyBonus(cfg: Config, count: number) {
-  for (const tier of cfg.ml_bonus.tiers) {
-    if (count >= tier.min && count <= tier.max) {
-      return tier.value;
+  const tiersSource = cfg.ml_bonus?.tiers as unknown;
+  const rawTiers = Array.isArray(tiersSource) ? tiersSource : tiersSource ? Object.values(tiersSource as Record<string, unknown>) : [];
+
+  const fallbackTiers = [
+    { min: 30, max: 39, value: 20 },
+    { min: 40, max: 49, value: 40 },
+    { min: 50, max: null, value: 60 }
+  ];
+
+  const tiers = rawTiers.length > 0 ? rawTiers : fallbackTiers;
+
+  const toNumber = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[^0-9.,-]/g, '').replace(',', '.').trim();
+      if (cleaned.length === 0) return null;
+      const parsed = Number(cleaned);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+  };
+
+  let bonus = 0;
+
+  for (const rawTier of tiers) {
+    if (!rawTier || typeof rawTier !== 'object') continue;
+    const tier = rawTier as Record<string, unknown>;
+    const min = toNumber(tier.min);
+    const max = toNumber(tier.max);
+    const value = toNumber(tier.value);
+
+    if (min === null || value === null) continue;
+    if (count < min) continue;
+    if (max !== null && count > max) continue;
+
+    bonus = Math.max(bonus, value);
+  }
+
+  if (bonus === 0 && count > 0) {
+    for (const tier of fallbackTiers) {
+      if (count >= tier.min && (tier.max === null || count <= tier.max)) {
+        bonus = Math.max(bonus, tier.value);
+      }
     }
   }
-  return 0;
+
+  return bonus;
 }
 
 export function getFaturamentoRate(cfg: Config, total: number) {

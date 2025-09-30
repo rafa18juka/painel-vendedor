@@ -1,23 +1,23 @@
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
 export function getNow() {
-  return utcToZonedTime(new Date(), TIMEZONE);
+  return toZonedTime(new Date(), TIMEZONE);
 }
 
 export function formatDate(date: Date, fmt = 'yyyy-MM-dd') {
-  return format(utcToZonedTime(date, TIMEZONE), fmt);
+  return format(toZonedTime(date, TIMEZONE), fmt);
 }
 
 export function toZonedISO(date: Date) {
-  const zoned = utcToZonedTime(date, TIMEZONE);
+  const zoned = toZonedTime(date, TIMEZONE);
   return format(zoned, "yyyy-MM-dd'T'HH:mm:ssXXX");
 }
 
 export function parseDate(dateString: string) {
-  return utcToZonedTime(parseISO(dateString), TIMEZONE);
+  return toZonedTime(parseISO(dateString), TIMEZONE);
 }
 
 export function getWeekKey(date: Date) {
@@ -32,7 +32,7 @@ export function getWeekRange(date: Date) {
 }
 
 export function toUtc(date: Date) {
-  return zonedTimeToUtc(date, TIMEZONE);
+  return fromZonedTime(date, TIMEZONE);
 }
 
 export function getTimezone() {

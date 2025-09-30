@@ -8,5 +8,13 @@
 
 body {
   font-family: theme('fontFamily.sans');
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #cfe7ff 0%, #dfe8ff 45%, #ffd9e6 100%);
+  min-height: 100vh;
 }
+
+@media (min-width: 640px) {
+  body {
+    background: linear-gradient(135deg, #cfe7ff 0%, #dfe8ff 45%, #c9ffe6 100%);
+  }
+}
+

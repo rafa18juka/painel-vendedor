@@ -39,7 +39,7 @@ export async function addMlLink({ uid, url, date = new Date() }: { uid: string; 
   }
 }
 
-export async function getMlLinks(uid: string, date = new Date()) {
+export async function getMlLinks(uid: string, date = new Date()): Promise<{ url: string; ts: number }[]> {
   const weekISO = getWeekKey(date);
   const snapshot = await get(child(ref(db), `ml_links/${weekISO}/${uid}/items`));
   if (!snapshot.exists()) return [] as { url: string; ts: number }[];
