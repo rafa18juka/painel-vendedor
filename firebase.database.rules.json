@@ -30,6 +30,7 @@
       }
     },
     "ml_links": {
+      ".read": "auth != null && root.child('users/' + auth.uid + '/role').val() === 'admin'",
       "$week": {
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/role').val() === 'admin')",

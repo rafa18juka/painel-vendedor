@@ -11,9 +11,9 @@ import { getConfig, saveConfig, getUserProfile } from '../../services/config';
 import { getAllSalesByMonth } from '../../services/sales';
 import { resetUserDay, resetUserMonth } from '../../services/adminTools';
 import { getClosure, publishClosure, type ClosurePayload } from '../../services/closures';
-import { getMlLinks } from '../../services/ml';
+import { getAllMlLinks, type MlLinkRecord } from '../../services/ml';
 import { calcMlWeeklyBonus, calcCommissionForSale, getFaturamentoRate } from '../../lib/calc';
-import { formatDate, getNow, getWeekKey } from '../../lib/time';
+import { formatDate, getNow, getWeekKey, getWeekRange, parseWeekKey } from '../../lib/time';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -43,6 +43,15 @@ type ClosureForm = z.infer<typeof closureSchema>;
 
 type ConfigForm = z.infer<typeof configSchema>;
 
+type MlWeekGroup = {
+  weekKey: string;
+  label: string;
+  sortValue: number;
+  items: MlLinkRecord[];
+};
+
+type MlLinksByUser = Record<string, MlWeekGroup[]>;
+
 export function AdminPage() {
   const { user, logout } = useAuth();
   const [config, setConfig] = useState<Config | null>(null);
@@ -50,7 +59,7 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [closureInfo, setClosureInfo] = useState<ClosurePayload | null>(null);
   const [teamProfiles, setTeamProfiles] = useState<Record<string, string>>({});
-  const [mlLinksByUser, setMlLinksByUser] = useState<Record<string, { url: string; ts: number }[]>>({});
+  const [mlLinksByUser, setMlLinksByUser] = useState<MlLinksByUser>({});
   const [selectedUid, setSelectedUid] = useState('');
   const [resetDay, setResetDay] = useState(formatDate(getNow(), 'yyyy-MM-dd'));
   const [resetMonth, setResetMonth] = useState(formatDate(getNow(), 'yyyy-MM'));
@@ -96,27 +105,82 @@ export function AdminPage() {
   }, [availableUsers, selectedUid]);
 
   useEffect(() => {
-    if (!config) return;
+    if (!config || availableUsers.length === 0) {
+      setMlLinksByUser({});
+      return;
+    }
+
     let active = true;
-    const users = Array.from(new Set([config.team.coordinatorId, ...config.team.sellers]));
-    Promise.all(
-      users.map(async (uid) => {
-        try {
-          const links = await getMlLinks(uid);
-          return [uid, links ?? []] as const;
-        } catch (error) {
-          console.error(error);
-          return [uid, []] as const;
+
+    async function loadLinks() {
+      try {
+        const allLinks = await getAllMlLinks();
+        if (!active) {
+          return;
         }
-      })
-    ).then((entries) => {
-      if (!active) return;
-      setMlLinksByUser(Object.fromEntries(entries));
-    });
+
+        const base = Object.fromEntries(
+          availableUsers.map((uid) => [uid, [] as MlWeekGroup[]])
+        ) as MlLinksByUser;
+
+        Object.entries(allLinks).forEach(([weekKey, perUser]) => {
+          if (!perUser) {
+            return;
+          }
+
+          Object.entries(perUser).forEach(([uid, items]) => {
+          if (!base[uid]) {
+            base[uid] = [];
+          }
+
+          const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
+          const referenceTs = sortedItems.find((item) => Number.isFinite(item.ts) && item.ts > 0)?.ts ?? null;
+
+          let sortValue = Number.NEGATIVE_INFINITY;
+          let label = weekKey;
+
+          if (referenceTs) {
+            const referenceDate = new Date(referenceTs);
+            sortValue = referenceDate.getTime();
+            const range = getWeekRange(referenceDate);
+            label = `${range.start} - ${range.end}`;
+          } else {
+            const fallbackWeekStart = parseWeekKey(weekKey);
+            if (fallbackWeekStart) {
+              sortValue = fallbackWeekStart.getTime();
+              const range = getWeekRange(fallbackWeekStart);
+              label = `${range.start} - ${range.end}`;
+            }
+          }
+
+          base[uid].push({
+            weekKey,
+            label,
+            sortValue,
+            items: sortedItems
+          });
+        });
+        });
+
+        Object.keys(base).forEach((uid) => {
+          base[uid].sort((a, b) => b.sortValue - a.sortValue);
+        });
+
+        setMlLinksByUser(base);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        console.error(error);
+      }
+    }
+
+    loadLinks();
+
     return () => {
       active = false;
     };
-  }, [config, week, reloadKey]);
+  }, [config, availableUsers, reloadKey]);
 
   const configForm = useForm<ConfigForm>({
     resolver: zodResolver(configSchema),
@@ -432,28 +496,51 @@ export function AdminPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {availableUsers.map((uid) => {
-                    const items = mlLinksByUser[uid] ?? [];
+                    const weekGroups = mlLinksByUser[uid] ?? [];
+                    const totalLinks = weekGroups.reduce((acc, group) => acc + group.items.length, 0);
                     const displayName = teamProfiles[uid] ?? uid;
                     return (
                       <div key={uid} className="rounded-lg border border-slate-200 bg-white p-3">
                         <div className="flex items-center justify-between text-sm font-medium text-slate-800">
                           <span>{displayName}</span>
-                          <span>{items.length} {items.length === 1 ? "link" : "links"}</span>
+                          <span>
+                            {totalLinks} {totalLinks === 1 ? 'link' : 'links'}
+                          </span>
                         </div>
-                        {items.length > 0 ? (
-                          <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                            {items.slice(0, 10).map((item) => (
-                              <li key={item.url} className="flex items-center justify-between gap-2">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="truncate text-blue-600 hover:underline">{item.url}</a>
-                                <span className="whitespace-nowrap text-[10px] text-slate-400">{format(new Date(item.ts), "dd/MM HH:mm")}</span>
-                              </li>
+                        {totalLinks > 0 ? (
+                          <div className="mt-3 max-h-64 space-y-4 overflow-y-auto pr-2">
+                            {weekGroups.map((group) => (
+                              <div key={`${uid}-${group.weekKey}`} className="space-y-2">
+                                <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                                  <span>Semana {group.label}</span>
+                                  <span>
+                                    {group.items.length} {group.items.length === 1 ? 'link' : 'links'}
+                                  </span>
+                                </div>
+                                <ul className="space-y-1 text-xs text-slate-600">
+                                  {group.items.map((item) => {
+                                    const isValidTimestamp = Number.isFinite(item.ts) && item.ts > 0;
+                                    const timestampLabel = isValidTimestamp ? format(new Date(item.ts), 'dd/MM HH:mm') : 'sem data';
+                                    return (
+                                      <li key={`${group.weekKey}-${item.id}`} className="flex items-center justify-between gap-2">
+                                        <a
+                                          href={item.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="truncate text-blue-600 hover:underline"
+                                        >
+                                          {item.url}
+                                        </a>
+                                        <span className="whitespace-nowrap text-[10px] text-slate-400">{timestampLabel}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
                             ))}
-                            {items.length > 10 && (
-                              <li className="text-[11px] text-slate-500">+ {items.length - 10} links</li>
-                            )}
-                          </ul>
+                          </div>
                         ) : (
-                          <p className="mt-2 text-xs text-slate-500">Nenhum link registrado nesta semana.</p>
+                          <p className="mt-2 text-xs text-slate-500">Nenhum link registrado.</p>
                         )}
                       </div>
                     );
